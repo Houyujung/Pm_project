@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Chart Agent</title>
+    <style>
+        :root{
+            --bg: #0b0f17;
+            --panel: rgba(255,255,255,0.06);
+            --panel-2: rgba(255,255,255,0.09);
+            --text: rgba(255,255,255,0.92);
+            --muted: rgba(255,255,255,0.65);
+            --border: rgba(255,255,255,0.14);
+            --shadow: 0 12px 30px rgba(0,0,0,0.35);
+            --user: rgba(52, 152, 219, 0.22);
+            --accent: #4f8cff;
+        }
+
+        html, body { height: 100%; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background: radial-gradient(1200px 800px at 30% -10%, rgba(79,140,255,0.35), transparent 55%),
+                        radial-gradient(900px 700px at 90% 0%, rgba(155, 89, 182, 0.28), transparent 60%),
+                        var(--bg);
+            color: var(--text);
+        }
+
+        .app {
+            max-width: 980px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .topbar {
+            padding: 18px 16px 12px;
+            position: sticky;
+            top: 0;
+            backdrop-filter: blur(10px);
+            background: linear-gradient(to bottom, rgba(11,15,23,0.85), rgba(11,15,23,0.55));
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            z-index: 5;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: rgba(79,140,255,0.18);
+            border: 1px solid rgba(79,140,255,0.35);
+            box-shadow: 0 10px 22px rgba(79,140,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .title {
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            margin: 0;
+            font-size: 16px;
+        }
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .chat-wrap {
+            flex: 1;
+            overflow: auto;
+            padding: 18px 14px 0;
+        }
+
+        .chat-container { display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px; }
+        .row { display: flex; gap: 12px; align-items: flex-start; }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.86);
+            flex: 0 0 auto;
+            margin-top: 2px;
+        }
+
+        .message {
+            padding: 14px 14px;
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.10);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+            max-width: 78ch;
+            line-height: 1.35;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .llm-msg { background: rgba(255,255,255,0.05); }
+        .user { margin-left: auto; }
+        .user-msg { background: var(--user); border-color: rgba(79,140,255,0.25); }
+
+        .meta {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .meta strong { color: rgba(255,255,255,0.9); font-weight: 650; }
+
+        .input-area {
+            padding: 12px 14px 18px;
+            position: sticky;
+            bottom: 0;
+            background: linear-gradient(to top, rgba(11,15,23,0.92), rgba(11,15,23,0.55));
+            border-top: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(12px);
+            z-index: 5;
+        }
+
+        .composer {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            padding: 12px;
+        }
+
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (max-width: 720px){
+            .grid2 { grid-template-columns: 1fr; }
+        }
+
+        .form-group { margin-bottom: 10px; }
+        label { color: var(--muted); font-size: 12px; display:block; margin-bottom: 6px; }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            box-sizing: border-box;
+            outline: none;
+        }
+        input[type="text"]::placeholder{ color: rgba(255,255,255,0.45); }
+
+        select{
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            box-sizing: border-box;
+            outline: none;
+            appearance: none;
+        }
+        select option{ background: #0b0f17; }
+
+        input[type="file"]{
+            width: 100%;
+            padding: 8px 0;
+            color: var(--muted);
+        }
+
+        .send {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        button {
+            background: rgba(79,140,255,0.95);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 650;
+            min-width: 110px;
+        }
+        button:hover { background: rgba(79,140,255,1); }
+
+        button:disabled{ opacity: 0.6; cursor: not-allowed; }
+
+        .hint { color: var(--muted); font-size: 12px; }
+
+        .chart-img { max-width: 100%; margin-top: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.10); }
+        .chart-gallery { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+        .chart-item { flex: 1; min-width: 280px; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); }
+        .chart-label { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 8px; text-align: center; }
+        .download-btn { margin-top: 10px; display: inline-block; text-align: center; padding: 8px 12px; background: rgba(255,255,255,0.1); color: #fff; text-decoration: none; border-radius: 8px; font-size: 13px; transition: background 0.2s; }
+        .download-btn:hover { background: rgba(255,255,255,0.2); }
+        .action-btn { background: rgba(155, 89, 182, 0.85); margin-top: 8px; width: 100%; border-radius: 8px; padding: 12px; }
+        .action-btn:hover { background: rgba(155, 89, 182, 1); }
+        .suggestion-bubbles { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .bubble-btn { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--muted); padding: 6px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; min-width: auto; font-weight: 500; }
+        .bubble-btn:hover { background: rgba(79,140,255,0.2); color: #fff; border-color: rgba(79,140,255,0.5); }
+        pre { background: rgba(255,255,255,0.06); padding: 10px; border-radius: 12px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.10); }
+        code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        .loader { display: none; text-align: center; margin: 8px 0 12px; color: var(--muted); font-weight: 650; }
+
+        .typing-dots{
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .typing-dots span{
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.45);
+            animation: bounce 1.2s infinite;
+        }
+        .typing-dots span:nth-child(2){ animation-delay: 0.15s; }
+        .typing-dots span:nth-child(3){ animation-delay: 0.3s; }
+        @keyframes bounce{
+            0%, 80%, 100%{ transform: translateY(0); opacity: 0.55; }
+            40%{ transform: translateY(-5px); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="topbar">
+            <div class="brand">
+                <div class="logo">📊</div>
+                <div>
+                    <p class="title">LLM Chart Agent</p>
+                    <p class="subtitle">類 ChatGPT 風格聊天介面</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-wrap">
+            <div class="chat-container" id="chatHistory">
+                <!-- Messages go here -->
+            </div>
+            <div class="loader" id="loader">
+                <div class="typing-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+                <span style="margin-left:10px;">Thinking and drawing chart...</span>
+            </div>
+        </div>
+
+        <div class="input-area">
+                    <form id="chatForm">
+                        <div class="composer">
+                            <div class="grid2">
+                                <div class="form-group">
+                                    <label>Ollama Model</label>
+                                    <select id="modelInput" required>
+                                        <option value="granite4.1:3b" selected>granite4.1:3b</option>
+                                        <option value="llama3.1:8b">llama3.1:8b</option>
+                                        <option value="qwen2.5:7b">qwen2.5:7b</option>
+                                        <option value="mistral:7b">mistral:7b</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Data Source (CSV/Excel) (Optional)</label>
+                                    <input type="file" id="fileInput" accept=".csv, .xls, .xlsx">
+                                </div>
+                            </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label>Your Request</label>
+                        <div class="suggestion-bubbles">
+                            <button type="button" class="bubble-btn" onclick="fillInput('幫我畫 Bar Chart (長條圖)')">📊 Bar Chart</button>
+                            <button type="button" class="bubble-btn" onclick="fillInput('幫我畫 Line Chart (折線圖)')">📈 Line Chart</button>
+                            <button type="button" class="bubble-btn" onclick="fillInput('幫我畫 Pie Chart (圓餅圖)')">🥧 Pie Chart</button>
+                            <button type="button" class="bubble-btn" onclick="fillInput('幫我畫 Scatter Plot (散佈圖)')">🌌 Scatter Plot</button>
+                            <button type="button" class="bubble-btn" onclick="fillInput('幫我畫 Box Plot (箱型圖)')">📦 Box Plot</button>
+                            <button type="button" class="bubble-btn" onclick="fillInput('幫我畫 Histogram (直方圖)')">📉 Histogram</button>
+                        </div>
+                        <input type="text" id="messageInput" placeholder="e.g., Plot a bar chart showing Sales by Month" required>
+                    </div>
+
+                    <div class="send">
+                        <div class="hint">按 Enter 送出（或點 Send）</div>
+                        <button type="submit" id="sendBtn">Send</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const form = document.getElementById('chatForm');
+        const chatHistory = document.getElementById('chatHistory');
+        const loader = document.getElementById('loader');
+        const sendBtn = document.getElementById('sendBtn');
+        const chatWrap = document.querySelector('.chat-wrap');
+        
+        let chatHistoryData = [];
+
+        function applyImprovements() {
+            document.getElementById('messageInput').value = "Please apply your suggested improvements to generate an optimized chart.";
+            document.getElementById('sendBtn').click();
+        }
+
+        function fillInput(text) {
+            const input = document.getElementById('messageInput');
+            if (input.value) {
+                input.value += '，' + text;
+            } else {
+                input.value = text;
+            }
+            input.focus();
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const message = document.getElementById('messageInput').value;
+            const model = document.getElementById('modelInput').value;
+            const fileInput = document.getElementById('fileInput');
+            
+            // Render User Message
+            const userRow = document.createElement('div');
+            userRow.className = 'row user';
+            const userAvatar = document.createElement('div');
+            userAvatar.className = 'avatar';
+            userAvatar.textContent = '🧑';
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user-msg';
+            userDiv.innerHTML = `
+                <div class="meta"><strong>You</strong></div>
+                <div>${message}</div>
+            `;
+            if (fileInput.files.length > 0) {
+                userDiv.innerHTML += `<div style="margin-top:8px;"><span style="color: rgba(255,255,255,0.75);">📎 Attached:</span> <span style="color: rgba(255,255,255,0.92);">${fileInput.files[0].name}</span></div>`;
+            }
+            userRow.appendChild(userDiv);
+            userRow.appendChild(userAvatar);
+            chatHistory.appendChild(userRow);
+
+            // Setup Request
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('model', model);
+            formData.append('history', JSON.stringify(chatHistoryData));
+            if (fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            }
+
+            document.getElementById('messageInput').value = '';
+            loader.style.display = 'block';
+            chatWrap.scrollTop = chatWrap.scrollHeight;
+            sendBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                // Render LLM Message
+                const llmRow = document.createElement('div');
+                llmRow.className = 'row';
+                const llmAvatar = document.createElement('div');
+                llmAvatar.className = 'avatar';
+                llmAvatar.textContent = '🤖';
+                const llmDiv = document.createElement('div');
+                llmDiv.className = 'message llm-msg';
+                
+                // Markdown rendering for instructions
+                let contentHTML = marked.parse(data.text || '');
+                 
+                // Render image(s) if present
+                if (data.images && data.images.length > 0) {
+                    contentHTML += `<hr><div class="chart-gallery">`;
+                    data.images.forEach((imgBase64, index) => {
+                        let label = index === 0 ? "Requested Chart" : "Recommended Chart " + index;
+                        contentHTML += `
+                        <div class="chart-item">
+                            <div class="chart-label">${label}</div>
+                            <img src="data:image/png;base64,${imgBase64}" class="chart-img" alt="${label}">
+                            <a href="data:image/png;base64,${imgBase64}" download="chart_${index + 1}.png" class="download-btn">⬇️ Download Chart</a>
+                        </div>`;
+                    });
+                    contentHTML += `</div>`;
+                } else if (data.image) {
+                    // Fallback for older API response format
+                    contentHTML += `<hr><div class="chart-gallery">
+                        <div class="chart-item">
+                            <div class="chart-label">Generated Chart</div>
+                            <img src="data:image/png;base64,${data.image}" class="chart-img" alt="Generated Chart">
+                            <a href="data:image/png;base64,${data.image}" download="chart.png" class="download-btn">⬇️ Download Chart</a>
+                        </div>
+                    </div>`;
+                }
+
+                if (data.text && (data.text.includes('Chart Evaluation') || data.text.includes('Evaluation & Suggestions'))) {
+                    contentHTML += `
+                    <div style="margin-top: 15px;">
+                        <button type="button" class="action-btn" onclick="applyImprovements()">✨ Apply AI Suggestions to Improve Chart</button>
+                    </div>`;
+                }
+
+                llmDiv.innerHTML = `<div class="meta"><strong>Assistant</strong></div>` + contentHTML;
+
+                llmRow.appendChild(llmAvatar);
+                llmRow.appendChild(llmDiv);
+                chatHistory.appendChild(llmRow);
+                
+                chatHistoryData.push({ role: 'user', content: message });
+                chatHistoryData.push({ role: 'assistant', content: data.text });
+
+            } catch (error) {
+                const errRow = document.createElement('div');
+                errRow.className = 'row';
+                const llmAvatar = document.createElement('div');
+                llmAvatar.className = 'avatar';
+                llmAvatar.textContent = '⚠️';
+                const errDiv = document.createElement('div');
+                errDiv.className = 'message llm-msg';
+                errDiv.style.color = 'rgba(255,120,120,0.95)';
+                errDiv.innerHTML = `<div class="meta"><strong>Error</strong></div><div>Error: ${error.message}</div>`;
+                errRow.appendChild(llmAvatar);
+                errRow.appendChild(errDiv);
+                chatHistory.appendChild(errRow);
+            } finally {
+                loader.style.display = 'none';
+                chatWrap.scrollTop = chatWrap.scrollHeight;
+                sendBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

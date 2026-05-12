@@ -1,0 +1,77 @@
+{
+  "Type": {
+    "Recall": {
+      "Subtype": {
+        "External context": {
+          "description": "Uncaptured data provided by the self-tracker to understand and explain a phenomenon shown in the data"
+        },
+        "Confirmation": {
+          "description": "Collected data confirms existing knowledge"
+        },
+        "Contradiction": {
+          "description": "Collected data contradicts existing knowledge"
+        }
+      }
+    },
+    "Detail": {
+      "Subtype": {
+        "Identify value": {
+          "description": "Explicitly specify the measured value, its range for one or more clearly identified data points, or the difference between two measured values"
+        },
+        "Identify extreme": {
+          "description": "Explicitly state the identities of the data points possessing extreme values of the measure variable"
+        },
+        "Identify references": {
+          "description": "Explicitly state the values of categorical variables, labels from the axes, or legends"
+        }
+      }
+    },
+    "Comparison": {
+      "Subtype": {
+        "By time segmentation": {
+          "description": "Compare measured values segmented by time"
+        },
+        "Multiple services": {
+          "description": "Compare the same data type from two or more services"
+        },
+        "Against external data": {
+          "description": "Bringing in external data for comparison"
+        },
+        "By factor": {
+          "description": "Compare measured values by a factor (other than time)"
+        },
+        "Instances": {
+          "description": "Compare two specific instances"
+        }
+      }
+    },
+    "Trend": {
+      "description": "Describe changes over time"
+    },
+    "Value judgement": {
+      "description": "Convey positive or negative connotations about the data"
+    },
+    "Distribution": {
+      "Subtype": {
+        "Variability": {
+          "description": "Explicitly state the variability of measured values"
+        },
+        "By category": {
+          "description": "Explicitly describe the variation of measured values across all or most of the values of a categorical variable"
+        }
+      }
+    },
+    "Correlation": {
+      "description": "Specify the direct relationship between two variables (but not as comparison)"
+    },
+    "Outlier": {
+      "description": "Explicitly point out outliers or state the effect of outliers"
+    },
+    "Data summary": {
+      "description": "Summary of collected data (such as number of data points, duration of tracking, and averages)"
+    },
+    "Prediction": {
+      "description": "Predict the future based on the collected data"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables
+.env
+
+# Frontend build artifacts (if any)
+dist/
+build/
+node_modules/
+
+# Generated/static uploads
+*.log
+
+# OS / editor
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Prompts directory DS_Store
+prompts/.DS_Store
