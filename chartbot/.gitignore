@@ -33,5 +33,3 @@ node_modules/
 .vscode/
 .idea/
 
-# Prompts directory DS_Store
-prompts/.DS_Store
