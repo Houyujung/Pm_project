@@ -17,8 +17,8 @@ load_dotenv()
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 from src.LLM import LLM
 
-# Override env settings explicitly
-os.environ['OLLAMA_BASE_URL'] = os.environ.get('OLLAMA_BASE_URL', 'https://jimmyllama.dev-serve.me')
+# Set default env settings if not explicitly set
+os.environ['OLLAMA_BASE_URL'] = os.environ.get('OLLAMA_BASE_URL', 'http://localhost:11434')
 
 app = FastAPI()
 

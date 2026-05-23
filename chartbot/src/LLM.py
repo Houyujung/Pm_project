@@ -1,10 +1,8 @@
 import os
-import re
 import json
 import base64
 import openai
 import requests
-import pprint
 import anthropic
 from groq import Groq
 
@@ -12,7 +10,7 @@ class LLM:
     """Unified wrapper for multiple LLM providers (OpenAI, Anthropic, Groq, DeepInfra, Ollama).
 
     Ollama-specific environment variables:
-        - OLLAMA_BASE_URL:   例如 https://jimmyllama.dev-serve.me，可改以連線其他主機。
+        - OLLAMA_BASE_URL:   例如 http://localhost:11434，可改以連線其他主機。
         - OLLAMA_API_URL:    可直接指定完整 API endpoint，預設為 {OLLAMA_BASE_URL}/api/chat。
         - OLLAMA_DEFAULT_MODEL: 無明確模型後綴時使用，預設為 "llama3"。
     """
@@ -25,7 +23,7 @@ class LLM:
         if self.api_key:
             self.headers["Authorization"] = f"Bearer {self.api_key}"
         self.ollama_model = None
-        ollama_base = os.environ.get("OLLAMA_BASE_URL", "https://jimmyllama.dev-serve.me").rstrip("/")
+        ollama_base = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
         # 若 OLLAMA_API_URL 未指定，則以 Base URL 拼接 /api/chat。
         self.ollama_api_url = os.environ.get("OLLAMA_API_URL", f"{ollama_base}/api/chat")
 
@@ -51,19 +49,6 @@ class LLM:
         else:
             raise ValueError("Unsupported model name.")
 
-    def encode_image(self, image_path):
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
-
-    def safe_execute(self, code_string):
-        result_dict = {'success': False, 'error': None}
-        try:
-            exec(code_string)
-            result_dict['success'] = True
-        except Exception as e:
-            result_dict['success'] = False
-            result_dict['error'] = str(e)
-        return result_dict['success'], result_dict['error']
 
     def run(self, prompt, imgs=None, past_messages=None):
         if imgs is None:
