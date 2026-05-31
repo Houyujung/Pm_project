@@ -62,17 +62,35 @@ async def chat(message: str = Form(...), file: UploadFile = File(None), model: s
             df = pd.read_excel(io.BytesIO(content))
             
         if df is not None:
-            system_context = f"Assume a pandas DataFrame `df` is already loaded with the following columns: {list(df.columns)}. Data sample:\n{df.head().to_string()}\n"
+            numeric_columns = df.select_dtypes(include="number").columns.tolist()
+            categorical_columns = df.select_dtypes(exclude="number").columns.tolist()
+            dtype_summary = {column: str(dtype) for column, dtype in df.dtypes.items()}
+            system_context = (
+                "Assume a pandas DataFrame `df` is already loaded.\n"
+                f"Columns: {list(df.columns)}\n"
+                f"Column dtypes: {dtype_summary}\n"
+                f"Numeric columns safe for mean/sum/min/max aggregation: {numeric_columns}\n"
+                f"Categorical/text columns for grouping, labels, or filters only: {categorical_columns}\n"
+                f"Data sample:\n{df.head().to_string()}\n"
+            )
             instructions = (
-                "\nWrite Python code using `matplotlib.pyplot as plt` to plot the requested chart based on the existing `df` variable. DO NOT redefine or mock `df`.\n"
-                "If the user is asking for a new chart, recommend TWO DIFFERENT types of charts that might be better suited. Provide exactly THREE separate ```python ... ``` blocks (1. requested, 2. first recommendation, 3. second recommendation).\n"
+                "\nYou are an expert data visualization assistant. Infer the user's analysis goal from their request, even when they do not name a specific chart type. Choose the most suitable chart type based on the data columns, the audience, and the comparison/relationship/trend/distribution the user wants to understand.\n"
+                "Write Python code using `matplotlib.pyplot as plt` to plot the chosen chart based on the existing `df` variable. DO NOT redefine or mock `df`.\n"
+                "If the user explicitly asks for a specific chart type, create that requested chart first. If the user does NOT specify a chart type, treat your best chart choice as the requested chart and briefly explain why it is appropriate.\n"
+                "When using aggregation methods such as mean(), sum(), median(), min(), or max(), explicitly select only numeric columns first. NEVER call df.mean(), df.groupby(...).mean(), or similar aggregation on the whole DataFrame when text columns are present.\n"
+                "Use categorical/text columns only as group-by keys, axis labels, legends, or filters. If the user asks for a comparison by category, group by the category and aggregate one or more numeric columns.\n"
+                "If the user asks to compare multiple numeric measures with no category, aggregate each numeric measure directly and use a clear comparison chart such as a bar chart, dot plot, or lollipop chart.\n"
+                "If the user is asking for a new chart, provide exactly THREE separate ```python ... ``` blocks: (1. your selected/requested chart, 2. a meaningful alternative chart, 3. another meaningful alternative chart). The two alternatives must be genuinely different chart designs suited to the same analysis goal.\n"
                 "If the user is asking to apply improvements to a previous chart, just provide the improved chart in a SINGLE ```python ... ``` block.\n"
+                "Your chart code must include clear title, axis labels, readable tick labels, and annotations or visual highlights for the strongest and weakest values when the request asks for highlights.\n"
                 "DO NOT print out matplotlib warnings and do not call plt.show() inside the code.\n\n"
                 "Finally, you MUST include the following markdown headings in your text response:\n"
+                "### Selected Chart Rationale\n"
+                "(Explain which chart you selected and why it fits the user's goal and audience)\n"
                 "### Recommendation Reasons\n"
                 "(Explain exactly WHY you recommended these two alternative chart types)\n"
                 "### Key Insights Summary\n"
-                "(Provide 2-3 key insights based on the data and the generated charts)\n"
+                "(Provide 3 key insights based on the data and the generated charts. If relevant, identify strongest and weakest categories or measures)\n"
                 "### Chart Evaluation & Suggestions\n"
                 "(Critique the chart design, such as color contrast, labeling, or chart type suitability, and provide concrete suggestions for improvement)\n"
             )
