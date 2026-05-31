@@ -267,10 +267,7 @@
                                 <div class="form-group">
                                     <label>Ollama Model</label>
                                     <select id="modelInput" required>
-                                        <option value="granite4.1:3b" selected>granite4.1:3b</option>
-                                        <option value="llama3.1:8b">llama3.1:8b</option>
-                                        <option value="qwen2.5:7b">qwen2.5:7b</option>
-                                        <option value="mistral:7b">mistral:7b</option>
+                                        <option value="">Loading models...</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -308,8 +305,49 @@
         const loader = document.getElementById('loader');
         const sendBtn = document.getElementById('sendBtn');
         const chatWrap = document.querySelector('.chat-wrap');
+        const modelInput = document.getElementById('modelInput');
         
         let chatHistoryData = [];
+
+        async function loadModels() {
+            modelInput.disabled = true;
+            modelInput.innerHTML = '<option value="">Loading models...</option>';
+
+            try {
+                const response = await fetch('/api/models');
+                const data = await response.json();
+                const models = Array.isArray(data.models) ? data.models : [];
+                const defaultModel = data.default_model || models[0] || '';
+
+                if (models.length === 0) {
+                    throw new Error(data.error || 'No models returned from Ollama');
+                }
+
+                modelInput.innerHTML = '';
+                models.forEach((modelName) => {
+                    const option = document.createElement('option');
+                    option.value = modelName;
+                    option.textContent = modelName;
+                    option.selected = modelName === defaultModel;
+                    modelInput.appendChild(option);
+                });
+
+                if (!models.includes(defaultModel) && defaultModel) {
+                    const option = document.createElement('option');
+                    option.value = defaultModel;
+                    option.textContent = defaultModel;
+                    option.selected = true;
+                    modelInput.prepend(option);
+                }
+            } catch (error) {
+                modelInput.innerHTML = '<option value="granite4.1:3b">granite4.1:3b</option>';
+                console.error('Failed to load Ollama models:', error);
+            } finally {
+                modelInput.disabled = false;
+            }
+        }
+
+        loadModels();
 
         function applyImprovements() {
             document.getElementById('messageInput').value = "Please apply your suggested improvements to generate an optimized chart.";
