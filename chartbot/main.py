@@ -46,8 +46,6 @@ import json
 @app.post("/api/chat")
 async def chat(message: str = Form(...), file: UploadFile = File(None), model: str = Form("granite4.1:3b"), history: str = Form("[]")):
     df = None
-    numeric_columns = []
-    categorical_columns = []
     system_context = ""
     
     try:
@@ -78,7 +76,6 @@ async def chat(message: str = Form(...), file: UploadFile = File(None), model: s
             instructions = (
                 "\nYou are an expert data visualization assistant. Infer the user's analysis goal from their request, even when they do not name a specific chart type. Choose the most suitable chart type based on the data columns, the audience, and the comparison/relationship/trend/distribution the user wants to understand.\n"
                 "Write Python code using `matplotlib.pyplot as plt` to plot the chosen chart based on the existing `df` variable. DO NOT redefine or mock `df`.\n"
-                "Your response MUST start with the chart code blocks before any explanation. Do not provide a text-only answer when data is available.\n"
                 "If the user explicitly asks for a specific chart type, create that requested chart first. If the user does NOT specify a chart type, treat your best chart choice as the requested chart and briefly explain why it is appropriate.\n"
                 "When using aggregation methods such as mean(), sum(), median(), min(), or max(), explicitly select only numeric columns first. NEVER call df.mean(), df.groupby(...).mean(), or similar aggregation on the whole DataFrame when text columns are present.\n"
                 "Use categorical/text columns only as group-by keys, axis labels, legends, or filters. If the user asks for a comparison by category, group by the category and aggregate one or more numeric columns.\n"
@@ -86,7 +83,6 @@ async def chat(message: str = Form(...), file: UploadFile = File(None), model: s
                 "If the user is asking for a new chart, provide exactly THREE separate ```python ... ``` blocks: (1. your selected/requested chart, 2. a meaningful alternative chart, 3. another meaningful alternative chart). The two alternatives must be genuinely different chart designs suited to the same analysis goal.\n"
                 "If the user is asking to apply improvements to a previous chart, just provide the improved chart in a SINGLE ```python ... ``` block.\n"
                 "Your chart code must include clear title, axis labels, readable tick labels, and annotations or visual highlights for the strongest and weakest values when the request asks for highlights.\n"
-                "Use this exact format for code fences: ```python on its own line, then executable code, then ``` on its own line.\n"
                 "DO NOT print out matplotlib warnings and do not call plt.show() inside the code.\n\n"
                 "Finally, you MUST include the following markdown headings in your text response:\n"
                 "### Selected Chart Rationale\n"
@@ -118,26 +114,6 @@ async def chat(message: str = Form(...), file: UploadFile = File(None), model: s
     if not code_matches:
         # Fallback if the LLM forgot the word 'python'
         code_matches = re.findall(r"```[ \t]*\n(.*?)```", response, re.DOTALL)
-
-    if not code_matches and df is not None and numeric_columns:
-        fallback_columns = numeric_columns[:6]
-        code_matches = [f"""
-score_cols = {fallback_columns!r}
-means = df[score_cols].mean().sort_values()
-colors = ['#d95f5f' if value == means.min() else '#3fa76f' if value == means.max() else '#4f8cff' for value in means]
-ax.barh(means.index, means.values, color=colors)
-ax.set_title('Average Scores by Subject')
-ax.set_xlabel('Average score')
-ax.set_ylabel('Subject')
-for i, value in enumerate(means.values):
-    label = 'Weakest' if value == means.min() else 'Strongest' if value == means.max() else ''
-    ax.text(value + 0.5, i, f'{{value:.1f}} {{label}}'.strip(), va='center')
-ax.grid(axis='x', alpha=0.25)
-"""]
-        response += (
-            "\n\n> Note: The model did not return an executable Python code block, "
-            "so the server generated a fallback comparison chart from the numeric columns."
-        )
     
     for idx, code in enumerate(code_matches):
         try:
